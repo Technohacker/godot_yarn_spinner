@@ -173,7 +173,7 @@ static func convert_fibres(fibres: Array):
 				options.append(fibres[i + j])
 				j += 1
 
-			i += j
+			i += (j - 1)
 
 			body += options(options)
 		elif fibre is YarnShortcutOption:
@@ -184,7 +184,7 @@ static func convert_fibres(fibres: Array):
 				options.append(fibres[i + j])
 				j += 1
 
-			i += j
+			i += (j - 1)
 
 			body += shortcut_options(options)
 		else:
