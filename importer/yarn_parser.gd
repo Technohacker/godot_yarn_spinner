@@ -94,24 +94,25 @@ static func parse_body(file: File, indent_level = 0):
 			node.command = command[0]
 			command.remove(0)
 
-			var parameters = command[0].split(" ", false)
-
-			var i = 0
-			while i < parameters.size():
-				var param = parameters[i] as String
-
-				if param.begins_with("\""):
-					param = param.replace("\"", "")
-					var j = 1
-					while (i + j) < parameters.size() && !(parameters[i + j].ends_with("\"")):
-						param += " " + parameters[i + j]
-						j += 1
-
-					param += " " + parameters[i + j].replace("\"", "")
-					i += j
-
-				node.parameters.append(param)
-				i += 1
+			if !command.empty():
+				var parameters = command[0].split(" ", false)
+	
+				var i = 0
+				while i < parameters.size():
+					var param = parameters[i] as String
+	
+					if param.begins_with("\""):
+						param = param.replace("\"", "")
+						var j = 1
+						while (i + j) < parameters.size() && !(parameters[i + j].ends_with("\"")):
+							param += " " + parameters[i + j]
+							j += 1
+	
+						param += " " + parameters[i + j].replace("\"", "")
+						i += j
+	
+					node.parameters.append(param)
+					i += 1
 
 			body.append(node)
 		elif line.content == "===":
