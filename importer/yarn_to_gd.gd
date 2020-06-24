@@ -2,16 +2,20 @@ extends Node
 
 const SCRIPT_HEADER = """extends Node
 
-signal dialogue(actor, message)
-signal command(command, parameters)
-signal options(options)
+signal dialogue(yarn_node, actor, message)
+signal command(yarn_node, command, parameters)
+signal options(yarn_node, options)
 
 var story_state = null
 var current_function = \"start\"
+var variables = {}
 
 func set_current_yarn_thread(thread_name: String):
 	current_function = thread_name
 	story_state = null
+
+func set_variable(var_name, value):
+	variables[\"$\" + var_name] = value
 
 func step_through_story(value = null):
 	if current_function != "":
@@ -53,7 +57,7 @@ static func command(command, parameters):
 			parameters_str += "]"
 
 			return [
-				"emit_signal(\"command\", \"{command}\", {parameters})".format({
+				"emit_signal(\"command\", self, \"{command}\", {parameters})".format({
 					"command": command,
 					"parameters": parameters_str
 				}),
@@ -62,7 +66,7 @@ static func command(command, parameters):
 
 static func dialogue(actor, message):
 	return [
-		"emit_signal(\"dialogue\", \"{actor}\", \"{message}\")".format({
+		"emit_signal(\"dialogue\", self, \"{actor}\", \"{message}\".format(variables))".format({
 			"actor": actor,
 			"message": message
 		}),
@@ -83,7 +87,7 @@ static func options(opts: Array):
 	options_str += "]"
 
 	var body = [
-		"emit_signal(\"options\", {options})".format({
+		"emit_signal(\"options\", self, {options})".format({
 			"options": options_str
 		}),
 		"match yield():"
@@ -108,7 +112,7 @@ static func shortcut_options(opts: Array):
 	options_str += "]"
 
 	var body = [
-		"emit_signal(\"options\", {options})".format({
+		"emit_signal(\"options\", self, {options})".format({
 			"options": options_str
 		}),
 		"match yield():"

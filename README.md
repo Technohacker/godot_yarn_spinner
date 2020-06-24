@@ -10,16 +10,16 @@ The plugin is not 100% compatible with Yarn as of now. The current features avai
 3. Options
 4. Shortcut Options
 5. Commands
+6. Variable interpolation in dialogue
 
 Missing features:
 
-1. Variable interpolation
-2. Conditionals
-3. Format functions
-4. Expressions
-5. Localization tags
-6. Editing the Yarn code within Godot's editor
-7. Headers, Tags
+1. Conditionals
+2. Format functions
+3. Expressions
+4. Localization tags
+5. Editing the Yarn code within Godot's editor
+6. Headers, Tags
 
 Non-standard features:
 
