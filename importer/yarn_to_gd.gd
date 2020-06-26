@@ -7,7 +7,7 @@ signal command(yarn_node, command, parameters)
 signal options(yarn_node, options)
 
 var story_state = null
-var current_function = \"start\"
+var current_function = \"Start\"
 var variables = {}
 
 func set_current_yarn_thread(thread_name: String):
