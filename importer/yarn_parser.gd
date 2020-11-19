@@ -131,6 +131,9 @@ static func parse_body(file: File, indent_level = 0):
 				node.actor = ""
 				node.message = dialogue[0].strip_edges()
 
+			# Apply character escapes to the message
+			node.message = node.message.json_escape()
+
 			body.append(node)
 
 	return body
