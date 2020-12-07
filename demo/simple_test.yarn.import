@@ -1,0 +1,13 @@
+[remap]
+
+importer="com.technohacker.yarn"
+type="GDScript"
+path="res://.import/simple_test.yarn-f7eea5c3e7116f0046b762d0e8ded160.gd"
+
+[deps]
+
+source_file="res://addons/godot_yarn_spinner/demo/simple_test.yarn"
+dest_files=[ "res://.import/simple_test.yarn-f7eea5c3e7116f0046b762d0e8ded160.gd" ]
+
+[params]
+
