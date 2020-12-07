@@ -8,7 +8,7 @@ static func read_line_with_indent(file: File):
 	var dedent = line.dedent()
 	return {
 		"indent": line.length() - dedent.length(),
-		"content": line.dedent().strip_edges()
+		"content": line.dedent()
 	}
 
 """
@@ -52,6 +52,8 @@ static func new_node(file: File):
 
 	return node
 
+
+
 static func parse_body(file: File, indent_level = 0):
 	var body = []
 
@@ -89,32 +91,13 @@ static func parse_body(file: File, indent_level = 0):
 		elif line.content.begins_with("<<"):
 			# Command
 			var command = (line.content.replace("<<", "").replace(">>", "") as String).split(" ", false, 1)
-			var node = YarnCommand.new()
 
-			node.command = command[0]
-			command.remove(0)
+			if (!command.empty()):
+				var node = YarnCommand.new()
+				node.command = command[0]
+				node.parameters = parse_command_args(command[1])
+				body.append(node)
 
-			if !command.empty():
-				var parameters = command[0].split(" ", false)
-	
-				var i = 0
-				while i < parameters.size():
-					var param = parameters[i] as String
-	
-					if param.begins_with("\""):
-						param = param.replace("\"", "")
-						var j = 1
-						while (i + j) < parameters.size() && !(parameters[i + j].ends_with("\"")):
-							param += " " + parameters[i + j]
-							j += 1
-	
-						param += " " + parameters[i + j].replace("\"", "")
-						i += j
-	
-					node.parameters.append(param)
-					i += 1
-
-			body.append(node)
 		elif line.content == "===":
 			# End of body
 			break
@@ -137,3 +120,19 @@ static func parse_body(file: File, indent_level = 0):
 			body.append(node)
 
 	return body
+
+
+static func parse_command_args(args : String):
+	# Regex to match subquotes: 
+	# https://stackoverflow.com/questions/2817646/javascript-split-string-on-space-or-on-quotes-to-array
+	var commandRegex = '[^\\s"]+|"[^"]+"'
+	var params = []
+	var regex = RegEx.new()
+
+	regex.compile(commandRegex)
+
+	for param in regex.search_all(args):
+		params.push_back(param.get_string() as String)
+
+	return params
+

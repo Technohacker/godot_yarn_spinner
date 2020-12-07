@@ -45,21 +45,31 @@ static func command(command, parameters):
 					"duration": float(parameters[0])
 				})
 			]
+		"set":
+			var value = parameters[2];
+			if (typeof(value) == TYPE_STRING):
+				return [
+					"variables[\"{name}\"] = \"{value}\"".format({
+						"name": parameters[0],
+						"value": parameters[2]
+					})
+				]
+			else:
+				return [
+					"variables[\"{name}\"] = {value}".format({
+						"name": parameters[0],
+						"value": parameters[2]
+					})
+				]
 		"stop":
 			return [
 				"return"
 			]
 		_:
-			var parameters_str = "["
-			for param in parameters:
-				parameters_str += "\"" + param.replace("\"", "\\\"") + "\","
-
-			parameters_str += "]"
-
 			return [
-				"emit_signal(\"command\", self, \"{command}\", {parameters})".format({
+				"emit_signal(\"command\", self, \"{command}\", {params})".format({
 					"command": command,
-					"parameters": parameters_str
+					"params": parameters
 				}),
 				"yield()"
 			]
@@ -78,61 +88,41 @@ static func jump(target: String):
 		"current_function = \"%s\"" % target,
 		"return %s()" % target
 	]
-
-static func options(opts: Array):
-	var options_str = "["
+	
+static func build_options(opts: Array):
+	var parsed_options = []
 	for option in opts:
-		options_str += "\"" + option.message + "\", "
+		parsed_options.append("\"" + option.message + "\".format(variables)")
 
-	options_str += "]"
-
-	var body = [
-		"emit_signal(\"options\", self, {options})".format({
-			"options": options_str
+	return [
+		"emit_signal(\"options\", self, [{options}])".format({
+			"options": PoolStringArray(parsed_options).join(", ")
 		}),
 		"match yield():"
 	]
 
+static func options(opts: Array):
+	var body = build_options(opts)
+
 	for option in opts:
-		body += [
-			"\t\"" + option.message + "\":"
-		]
+		body.append("\t\"" + option.message + "\":")
 		for line in jump(option.target):
-			body += [
-				"\t\t" + line
-			]
+			body.append("\t\t" + line)
 
 	return body
 
 static func shortcut_options(opts: Array):
-	var options_str = "["
-	for option in opts:
-		options_str += "\"" + option.message + "\", "
-
-	options_str += "]"
-
-	var body = [
-		"emit_signal(\"options\", self, {options})".format({
-			"options": options_str
-		}),
-		"match yield():"
-	]
+	var body = build_options(opts)
 
 	for option in opts:
-		body += [
-			"\t\"" + option.message + "\":",
-		]
-		
+		body.append("\t\"" + option.message + "\":")
+
 		var lines = convert_fibres(option.body) as Array
 		if lines.empty():
-			body += [
-				"\t\tpass"
-			]
+			body.append("\t\tpass")
 		else:
 			for line in lines:
-				body += [
-					"\t\t" + line
-				]
+				body.append("\t\t" + line)
 
 	return body
 
@@ -143,17 +133,24 @@ static func yarn_to_gd(story: YarnStory):
 	# Start the script out with boilerplate
 	script.source_code += SCRIPT_HEADER
 
-	for thread in story.nodes:
-		# Each thread is a function
-		var body = convert_fibres(story.nodes[thread].body)
+	if (typeof(story.nodes) == TYPE_DICTIONARY):
 
-		script.source_code += function(thread, body)
+		for thread in story.nodes:
+			# Each thread is a function
+
+			var body = convert_fibres(story.nodes[thread].body)
+
+			script.source_code += function(thread, body)
+	else:
+		printerr("could not read story nodes type was {typeof(story.nodes)}")
 
 	script.reload()
 
 	return script
 
 static func convert_fibres(fibres: Array):
+
+
 	var body = []
 
 	var i = 0
