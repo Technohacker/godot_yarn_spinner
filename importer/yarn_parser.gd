@@ -95,7 +95,10 @@ static func parse_body(file: File, indent_level = 0):
 			if (!command.empty()):
 				var node = YarnCommand.new()
 				node.command = command[0]
-				node.parameters = parse_command_args(command[1])
+				if (command.size() > 1):
+					node.parameters = parse_command_args(command[1])
+				else:
+					node.parameters = []
 				body.append(node)
 
 		elif line.content == "===":

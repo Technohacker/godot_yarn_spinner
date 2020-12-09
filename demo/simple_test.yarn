@@ -1,14 +1,11 @@
 title: Start
-tags: 
-colorID: 0
-position: 738,494
 ---
 <<set $cake to "cake">>
 
 Linda: Why hello there.
 Linda: I'd love to have some "[color=blue]{$cake}[/color]" with you.
 
-<<showcake true>>
+<<set_cake_visible true>>
 
 Bob: That's terrifying...
 Bob: Please put that away.
@@ -17,32 +14,39 @@ Bob: That's not even {$cake}... it's
 -> Pizza
   <<set $cake to "pizza">>
   Bob: It's {$cake}...
+  [[theEnd]]
 -> Taco Salad
   <<set $cake to "taco salad">>
   Bob: It's {$cake}...
+  [[theEnd]]
 -> Actually it is...
   Bob: Oh. No wait. That is {$cake}...
   [[But. Seriously Lin... put the {$cake} away|noCake]]
   [[I guess it's OK then...|yayCake]]
 
+
 ===
 title: noCake
-tags: 
-colorID: 0
-position: 738,494
 ---
 
 Linda: Aww. You're no fun.
-<<showcake false>>
+<<set_cake_visible false>>
 
 Bob: oh thank god.
+[[theEnd]]
+
+
 ===
 title: yayCake
-tags: 
-colorID: 0
-position: 738,494
 ---
 
-Linda: Yay! I love ${cake}!
+Linda: Yay! I love {$cake}!
+Bob: Yeah, cake is pretty good.
+[[theEnd]]
 
+===
+title: theEnd
+---
+
+<<the_end>>
 ===
