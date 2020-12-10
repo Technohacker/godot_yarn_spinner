@@ -21,7 +21,7 @@ Bob: That's not even {$cake}... it's
   [[theEnd]]
 -> Actually it is...
   Bob: Oh. No wait. That is {$cake}...
-  [[But. Seriously Lin... put the {$cake} away|noCake]]
+  [[But. Seriously Lin... put the cake away|noCake]]
   [[I guess it's OK then...|yayCake]]
 
 
