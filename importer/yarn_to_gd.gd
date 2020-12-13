@@ -149,8 +149,6 @@ static func yarn_to_gd(story: YarnStory):
 	return script
 
 static func convert_fibres(fibres: Array):
-
-
 	var body = []
 
 	var i = 0
