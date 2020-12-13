@@ -8,7 +8,7 @@ static func read_line_with_indent(file: File):
 	var dedent = line.dedent()
 	return {
 		"indent": line.length() - dedent.length(),
-		"content": line.dedent()
+		"content": line.dedent().strip_edges()
 	}
 
 """
