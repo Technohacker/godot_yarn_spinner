@@ -66,6 +66,8 @@ static func command(command, parameters):
 				"return"
 			]
 		_:
+			for i in parameters.size():
+				parameters[i] = "\"" + parameters[i] + "\""
 			return [
 				"emit_signal(\"command\", self, \"{command}\", {params})".format({
 					"command": command,

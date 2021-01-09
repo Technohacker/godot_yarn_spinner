@@ -126,16 +126,39 @@ static func parse_body(file: File, indent_level = 0):
 
 
 static func parse_command_args(args : String):
-	# Regex to match subquotes: 
-	# https://stackoverflow.com/questions/2817646/javascript-split-string-on-space-or-on-quotes-to-array
-	var commandRegex = '[^\\s"]+|"[^"]+"'
+	# Split into individual tokens separated by spaces
+	var args_arr = args.split(" ", false)
 	var params = []
-	var regex = RegEx.new()
 
-	regex.compile(commandRegex)
+	# Loop through the array, converting each into a string parameter
+	var i = 0
+	while i < args_arr.size():
+		var param = args_arr[i] as String
 
-	for param in regex.search_all(args):
-		params.push_back(param.get_string() as String)
+		# If it begins with ", a multi-word parameter is incoming
+		if param.begins_with("\""):
+			# Start the multi-word parameter
+			param = param.replace("\"", "")
+
+			# Continue through the array, concatenating them into one parameter, until we find:
+			# 1. The end of the array, or
+			# 2. The end tag
+			var j = 0
+			for arg in Array(args_arr).slice(i + 1, args_arr.size()):
+				j += 1
+
+				# Check for string end (ignoring escaped quotes)
+				if (arg.ends_with("\"") && !arg.ends_with("\\\"")):
+					param += " " + arg.replace("\"", "")
+					break
+				else:
+					# Concatenate to the end of the parameter
+					param += " " + arg
+
+			i += j
+
+		params.append(param)
+		i += 1
 
 	return params
 
