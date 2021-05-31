@@ -16,4 +16,4 @@ func add_to_body(value):
 	body.append(value)
 
 func _to_string():
-	return "[Node]\nTags: " + PoolStringArray(tags).join(", ") + "Headers: " + to_json(headers) + " Body: [\n" + PoolStringArray(body).join("\n") + "\n]"
+	return "[Node]\nTags: " + PoolStringArray(tags).join(", ") + " Headers: " + to_json(headers) + " Body: [\n" + PoolStringArray(body).join("\n") + "\n]"

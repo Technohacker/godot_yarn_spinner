@@ -7,17 +7,20 @@ signal command(yarn_node, command, parameters)
 signal options(yarn_node, options)
 
 var story_state = null
-var current_function = \"Start\"
-var variables = {}
+var current_function := \"Start\"
+var variables := {}
 
-func set_current_yarn_thread(thread_name: String):
+func set_current_yarn_thread(thread_name: String) -> void:
 	current_function = thread_name
 	story_state = null
 
-func set_variable(var_name, value):
+func set_variable(var_name: String, value) -> void:
 	variables[\"$\" + var_name] = value
 
-func step_through_story(value = null):
+func get_variable(var_name: String):
+	return variables[\"$\" + var_name]
+
+func step_through_story(value = null) -> void:
 	if current_function != "":
 		if story_state is GDScriptFunctionState:
 			story_state = story_state.resume(value)
@@ -26,10 +29,10 @@ func step_through_story(value = null):
 """
 
 const FUNCTION = """
-func {function_name}():
+func {function_name}() -> void:
 """
 
-static func function(function_name, body):
+static func function(function_name: String, body: Array) -> String:
 	var funcstr = FUNCTION.format({
 		"function_name": function_name
 	})
@@ -37,7 +40,7 @@ static func function(function_name, body):
 		funcstr += "\t" + line + "\n"
 	return funcstr
 
-static func command(command, parameters):
+static func command(command: String, parameters: Array) -> Array:
 	match command:
 		"wait":
 			return [
@@ -46,28 +49,21 @@ static func command(command, parameters):
 				})
 			]
 		"set":
-			var value = parameters[2];
-			if (typeof(value) == TYPE_STRING):
-				return [
-					"variables[\"{name}\"] = \"{value}\"".format({
-						"name": parameters[0],
-						"value": parameters[2]
-					})
-				]
-			else:
-				return [
-					"variables[\"{name}\"] = {value}".format({
-						"name": parameters[0],
-						"value": parameters[2]
-					})
-				]
+			return [
+				"variables[\"{name}\"] {expression}".format({
+					"name": parameters[0],
+					"expression": preload("./parse_utils.gd").tokens_to_expression(parameters.slice(1, parameters.size()))
+				})
+			]
 		"stop":
 			return [
 				"return"
 			]
 		_:
 			for i in parameters.size():
-				parameters[i] = "\"" + parameters[i] + "\""
+				if !parameters[i].begins_with("\""):
+					parameters[i] = "\"" + parameters[i] + "\""
+
 			return [
 				"emit_signal(\"command\", self, \"{command}\", {params})".format({
 					"command": command,
@@ -76,7 +72,7 @@ static func command(command, parameters):
 				"yield()"
 			]
 
-static func dialogue(actor, message):
+static func dialogue(actor: String, message: String) -> Array:
 	return [
 		"emit_signal(\"dialogue\", self, \"{actor}\", \"{message}\".format(variables))".format({
 			"actor": actor,
@@ -85,14 +81,14 @@ static func dialogue(actor, message):
 		"yield()"
 	]
 
-static func jump(target: String):
+static func jump(target: String) -> Array:
 	return [
 		"current_function = \"%s\"" % target,
 		"return %s()" % target
 	]
-	
-static func build_options(opts: Array):
-	var parsed_options = []
+
+static func build_options(opts: Array) -> Array:
+	var parsed_options := []
 	for option in opts:
 		parsed_options.append("\"" + option.message + "\".format(variables)")
 
@@ -103,8 +99,8 @@ static func build_options(opts: Array):
 		"match yield():"
 	]
 
-static func options(opts: Array):
-	var body = build_options(opts)
+static func options(opts: Array) -> Array:
+	var body := build_options(opts)
 
 	for option in opts:
 		body.append("\t\"" + option.message + "\":")
@@ -113,13 +109,13 @@ static func options(opts: Array):
 
 	return body
 
-static func shortcut_options(opts: Array):
-	var body = build_options(opts)
+static func shortcut_options(opts: Array) -> Array:
+	var body := build_options(opts)
 
 	for option in opts:
 		body.append("\t\"" + option.message + "\":")
 
-		var lines = convert_fibres(option.body) as Array
+		var lines = convert_fibres(option.body)
 		if lines.empty():
 			body.append("\t\tpass")
 		else:
@@ -128,20 +124,42 @@ static func shortcut_options(opts: Array):
 
 	return body
 
+static func conditionals(conditionals: Array) -> Array:
+	var body = []
 
-static func yarn_to_gd(story: YarnStory):
+	for i in conditionals.size():
+		match i:
+			0:
+				body.append("if {expression}:".format({
+					"expression": conditionals[i].expression,
+				}))
+			_:
+				if conditionals[i].expression != "":
+					body.append("elif {expression}:".format({
+						"expression": conditionals[i].expression,
+					}))
+				else:
+					body.append("else:")
+
+		var lines = convert_fibres(conditionals[i].body)
+		if lines.empty():
+			body.append("\tpass")
+		else:
+			for line in lines:
+				body.append("\t" + line)
+
+	return body
+
+static func yarn_to_gd(story: YarnStory) -> GDScript:
 	var script = GDScript.new()
 
 	# Start the script out with boilerplate
 	script.source_code += SCRIPT_HEADER
 
 	if (typeof(story.nodes) == TYPE_DICTIONARY):
-
 		for thread in story.nodes:
 			# Each thread is a function
-
-			var body = convert_fibres(story.nodes[thread].body)
-
+			var body := convert_fibres(story.nodes[thread].body)
 			script.source_code += function(thread, body)
 	else:
 		printerr("could not read story nodes type was {typeof(story.nodes)}")
@@ -150,8 +168,8 @@ static func yarn_to_gd(story: YarnStory):
 
 	return script
 
-static func convert_fibres(fibres: Array):
-	var body = []
+static func convert_fibres(fibres: Array) -> Array:
+	var body := []
 
 	var i = 0
 	while i < fibres.size():
@@ -188,6 +206,15 @@ static func convert_fibres(fibres: Array):
 			i += (j - 1)
 
 			body += shortcut_options(options)
+		elif fibre is YarnConditional:
+			var conditionals = [fibre]
+			var j = 1
+			while (i + j) < fibres.size() && fibres[i + j] is YarnConditional:
+				conditionals.append(fibres[i + j])
+				j += 1
+
+			i += (j - 1)
+			body += conditionals(conditionals)
 		else:
 			body += []
 

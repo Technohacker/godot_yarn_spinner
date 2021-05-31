@@ -3,22 +3,22 @@ extends Node
 """
 Reads a line and counts its level of indentation
 """
-static func read_line_with_indent(file: File):
+static func read_line_with_indent(file: File) -> Dictionary:
 	var line = file.get_line()
 	var dedent = line.dedent()
 	return {
 		"indent": line.length() - dedent.length(),
-		"content": line.dedent().strip_edges()
+		"content": dedent.strip_edges()
 	}
 
 """
 Parses the given Yarn file line-by-line
 """
-static func parse(yarn_file: File):
-	var script = YarnStory.new()
+static func parse(yarn_file: File) -> YarnStory:
+	var script := YarnStory.new()
 
 	while !yarn_file.eof_reached():
-		var line = read_line_with_indent(yarn_file)["content"]
+		var line: String = read_line_with_indent(yarn_file)["content"]
 
 		if line.begins_with("title:"):
 			# New node
@@ -30,21 +30,21 @@ static func parse(yarn_file: File):
 """
 Starts a new node
 """
-static func new_node(file: File):
-	var node = YarnNode.new()
+static func new_node(file: File) -> YarnNode:
+	var node := YarnNode.new()
 
 	# Parse header until body starts
 	while !file.eof_reached():
-		var line = read_line_with_indent(file)["content"]
+		var line: String = read_line_with_indent(file)["content"]
 
 		if line.begins_with("tags:"):
-			var tags = line.replace("tags:", "").split(" ")
+			var tags := line.replace("tags:", "").split(" ")
 			for tag in tags:
 				node.add_tag(tag.strip_edges())
 		elif line == "---":
 			break
 		else:
-			var header = line.split(":", true, 1)
+			var header := line.split(":", true, 1)
 			node.add_header(header[0].strip_edges(), header[1].strip_edges())
 
 	# Header's done, parse body now
@@ -52,13 +52,11 @@ static func new_node(file: File):
 
 	return node
 
-
-
-static func parse_body(file: File, indent_level = 0):
-	var body = []
+static func parse_body(file: File, indent_level := 0) -> Array:
+	var body := []
 
 	while !file.eof_reached():
-		var line = read_line_with_indent(file)
+		var line := read_line_with_indent(file)
 
 		if line.indent < indent_level:
 			# Early return if we fall to a lower indent level
@@ -89,17 +87,31 @@ static func parse_body(file: File, indent_level = 0):
 			node.body = parse_body(file, indent_level + 1)
 			body.append(node)
 		elif line.content.begins_with("<<"):
-			# Command
+			# Command/Conditional
 			var command = (line.content.replace("<<", "").replace(">>", "") as String).split(" ", false, 1)
 
 			if (!command.empty()):
-				var node = YarnCommand.new()
-				node.command = command[0]
-				if (command.size() > 1):
-					node.parameters = parse_command_args(command[1])
-				else:
-					node.parameters = []
-				body.append(node)
+				# This could be a conditional
+				match command[0]:
+					"if", "elif", "else":
+						# Shortcut option. Parse the sub-body with this function
+						var node = YarnConditional.new()
+						node.expression = preload("./parse_utils.gd").tokens_to_expression(parse_command_args(command[1] if command.size() != 1 else ""))
+						# +1 to start it off
+						node.body = parse_body(file, indent_level + 1)
+						body.append(node)
+
+					"endif":
+						# Ignore since we've handled the other conditionals
+						pass
+					_:
+						var node = YarnCommand.new()
+						node.command = command[0]
+						if (command.size() > 1):
+							node.parameters = parse_command_args(command[1])
+						else:
+							node.parameters = []
+						body.append(node)
 
 		elif line.content == "===":
 			# End of body
@@ -124,41 +136,17 @@ static func parse_body(file: File, indent_level = 0):
 
 	return body
 
-
-static func parse_command_args(args : String):
+static func parse_command_args(args: String) -> Array:
+	# Regex to match subquotes:
 	# Split into individual tokens separated by spaces
-	var args_arr = args.split(" ", false)
+	# https://stackoverflow.com/questions/2817646/javascript-split-string-on-space-or-on-quotes-to-array
+	var commandRegex = '[^\\s"]+|"[^"]+"'
 	var params = []
+	var regex = RegEx.new()
 
-	# Loop through the array, converting each into a string parameter
-	var i = 0
-	while i < args_arr.size():
-		var param = args_arr[i] as String
+	regex.compile(commandRegex)
 
-		# If it begins with ", a multi-word parameter is incoming
-		if param.begins_with("\""):
-			# Start the multi-word parameter
-			param = param.replace("\"", "")
-
-			# Continue through the array, concatenating them into one parameter, until we find:
-			# 1. The end of the array, or
-			# 2. The end tag
-			var j = 0
-			for arg in Array(args_arr).slice(i + 1, args_arr.size()):
-				j += 1
-
-				# Check for string end (ignoring escaped quotes)
-				if (arg.ends_with("\"") && !arg.ends_with("\\\"")):
-					param += " " + arg.replace("\"", "")
-					break
-				else:
-					# Concatenate to the end of the parameter
-					param += " " + arg
-
-			i += j
-
-		params.append(param)
-		i += 1
+	for param in regex.search_all(args):
+		params.push_back(param.get_string() as String)
 
 	return params
-
