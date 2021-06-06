@@ -47,12 +47,15 @@ static func tokens_to_expression(tokens: Array) -> String:
 			for op in ARITH_OPERATORS:
 				token = token.replace(op, " %s " % op)
 
+			# Place the individual parts of the token for appending
 			token_parts.append_array(token.split(" ", false))
 		else:
 			# String literal
 			token_parts.append(token)
 
+		# Append each token part together
 		for part in token_parts:
+			# Any special cases are handled here
 			if part.begins_with("$"):
 				# Variable. Convert to a variables dictionary lookup
 				expression += "(variables[\"{variable_name}\"]) ".format({

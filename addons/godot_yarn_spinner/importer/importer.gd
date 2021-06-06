@@ -38,7 +38,10 @@ func import(source_file, save_path, options, r_platform_variants, r_gen_files):
 		printerr("Yarn Story file not found")
 		return err
 
+	# Parse the Yarn file
 	var story = preload("yarn_parser.gd").parse(file)
+	# Translate to GDScript
 	var script = preload("yarn_to_gd.gd").yarn_to_gd(story)
 
+	# Save to the final path
 	return ResourceSaver.save(path, script)

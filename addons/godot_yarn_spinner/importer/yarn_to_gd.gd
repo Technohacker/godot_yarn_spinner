@@ -1,5 +1,6 @@
 extends Node
 
+# Boilerplate script header common to all generated Yarn scripts
 const SCRIPT_HEADER = """extends Node
 
 signal dialogue(yarn_node, actor, message)
@@ -28,16 +29,23 @@ func step_through_story(value = null) -> void:
 			story_state = call(current_function)
 """
 
+# Function template
+# Newlines are intentional
 const FUNCTION = """
 func {function_name}() -> void:
 """
 
+# Create a string containing a function in GDScript
 static func function(function_name: String, body: Array) -> String:
+	# Prepare the start of the function
 	var funcstr = FUNCTION.format({
 		"function_name": function_name
 	})
+
+	# Append the body with indents and newlines
 	for line in body:
 		funcstr += "\t" + line + "\n"
+
 	return funcstr
 
 static func command(command: String, parameters: Array) -> Array:
@@ -48,6 +56,8 @@ static func command(command: String, parameters: Array) -> Array:
 					"duration": float(parameters[0])
 				})
 			]
+
+		# Set a variable to the result of an expression
 		"set":
 			return [
 				"variables[\"{name}\"] {expression}".format({
@@ -55,10 +65,14 @@ static func command(command: String, parameters: Array) -> Array:
 					"expression": preload("./parse_utils.gd").tokens_to_expression(parameters.slice(1, parameters.size()))
 				})
 			]
+
+		# Stop a block
 		"stop":
 			return [
 				"return"
 			]
+
+		# Other command. All parameters are sent as strings
 		_:
 			for i in parameters.size():
 				if !parameters[i].begins_with("\""):
