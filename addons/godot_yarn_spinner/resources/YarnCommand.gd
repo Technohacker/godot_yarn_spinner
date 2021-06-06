@@ -6,4 +6,4 @@ export(String) var command
 export(Array) var parameters
 
 func _to_string():
-	return "[Command] " + command + " [" + parameters.join(", ") + "]"
+	return "[Command] " + command + " [" + PoolStringArray(parameters).join(", ") + "]"

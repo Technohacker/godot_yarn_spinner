@@ -48,12 +48,16 @@ static func function(function_name: String, body: Array) -> String:
 
 	return funcstr
 
-static func command(command: String, parameters: Array) -> Array:
-	match command:
+# Convert a YarnCommand to an array of lines of GDScript
+static func command(command: YarnCommand) -> Array:
+	# Handle certain commands separately
+	match command.command:
+		# Wait for n seconds
+		# TODO: Needs to be fixed. This yield doesn't continue the story correctly
 		"wait":
 			return [
 				"yield(get_tree().create_timer({duration}), \"timeout\")".format({
-					"duration": float(parameters[0])
+					"duration": float(command.parameters[0])
 				})
 			]
 
@@ -61,8 +65,8 @@ static func command(command: String, parameters: Array) -> Array:
 		"set":
 			return [
 				"variables[\"{name}\"] {expression}".format({
-					"name": parameters[0],
-					"expression": preload("./parse_utils.gd").tokens_to_expression(parameters.slice(1, parameters.size()))
+					"name": command.parameters[0],
+					"expression": preload("./parse_utils.gd").tokens_to_expression(command.parameters.slice(1, command.parameters.size()))
 				})
 			]
 
@@ -74,31 +78,32 @@ static func command(command: String, parameters: Array) -> Array:
 
 		# Other command. All parameters are sent as strings
 		_:
-			for i in parameters.size():
-				if !parameters[i].begins_with("\""):
-					parameters[i] = "\"" + parameters[i] + "\""
+			for i in command.parameters.size():
+				# If any parameter isn't quoted already, quote it
+				if !command.parameters[i].begins_with("\""):
+					command.parameters[i] = "\"" + command.parameters[i] + "\""
 
 			return [
 				"emit_signal(\"command\", self, \"{command}\", {params})".format({
-					"command": command,
-					"params": parameters
+					"command": command.command,
+					"params": command.parameters
 				}),
 				"yield()"
 			]
 
-static func dialogue(actor: String, message: String) -> Array:
+static func dialogue(dialogue: YarnDialogue) -> Array:
 	return [
 		"emit_signal(\"dialogue\", self, \"{actor}\", \"{message}\".format(variables))".format({
-			"actor": actor,
-			"message": message
+			"actor": dialogue.actor,
+			"message": dialogue.message
 		}),
 		"yield()"
 	]
 
-static func jump(target: String) -> Array:
+static func jump(jump: YarnJump) -> Array:
 	return [
-		"current_function = \"%s\"" % target,
-		"return %s()" % target
+		"current_function = \"%s\"" % jump.target,
+		"return %s()" % jump.target
 	]
 
 static func build_options(opts: Array) -> Array:
@@ -191,13 +196,13 @@ static func convert_fibres(fibres: Array) -> Array:
 
 		if fibre is YarnCommand:
 			fibre = (fibre as YarnCommand)
-			body += command(fibre.command, fibre.parameters)
+			body += command(fibre)
 		elif fibre is YarnDialogue:
 			fibre = (fibre as YarnDialogue)
-			body += dialogue(fibre.actor, fibre.message)
+			body += dialogue(fibre)
 		elif fibre is YarnJump:
 			fibre = (fibre as YarnJump)
-			body += jump(fibre.target)
+			body += jump(fibre)
 		elif fibre is YarnOption:
 			var options = [fibre]
 
