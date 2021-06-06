@@ -1,4 +1,6 @@
-extends Node
+extends Reference
+
+var parse_utils = preload("./parse_utils.gd").new()
 
 # Boilerplate script header common to all generated Yarn scripts
 const SCRIPT_HEADER = """extends Node
@@ -36,7 +38,7 @@ func {function_name}() -> void:
 """
 
 # Create a string containing a function in GDScript
-static func function(function_name: String, body: Array) -> String:
+func function(function_name: String, body: Array) -> String:
 	# Prepare the start of the function
 	var funcstr = FUNCTION.format({
 		"function_name": function_name
@@ -49,7 +51,7 @@ static func function(function_name: String, body: Array) -> String:
 	return funcstr
 
 # Convert a YarnCommand to an array of lines of GDScript
-static func command(command: YarnCommand) -> Array:
+func command(command: YarnCommand) -> Array:
 	# Handle certain commands separately
 	match command.command:
 		# Wait for n seconds
@@ -66,7 +68,7 @@ static func command(command: YarnCommand) -> Array:
 			return [
 				"variables[\"{name}\"] {expression}".format({
 					"name": command.parameters[0],
-					"expression": preload("./parse_utils.gd").tokens_to_expression(command.parameters.slice(1, command.parameters.size()))
+					"expression": parse_utils.tokens_to_expression(command.parameters.slice(1, command.parameters.size()))
 				})
 			]
 
@@ -91,7 +93,7 @@ static func command(command: YarnCommand) -> Array:
 				"yield()"
 			]
 
-static func dialogue(dialogue: YarnDialogue) -> Array:
+func dialogue(dialogue: YarnDialogue) -> Array:
 	return [
 		"emit_signal(\"dialogue\", self, \"{actor}\", \"{message}\".format(variables))".format({
 			"actor": dialogue.actor,
@@ -100,16 +102,21 @@ static func dialogue(dialogue: YarnDialogue) -> Array:
 		"yield()"
 	]
 
-static func jump(jump: YarnJump) -> Array:
+func jump(jump: YarnJump) -> Array:
 	return [
 		"current_function = \"%s\"" % jump.target,
 		"return %s()" % jump.target
 	]
 
-static func build_options(opts: Array) -> Array:
+func build_options(opts: Array) -> Array:
 	var parsed_options := []
 	for option in opts:
-		parsed_options.append("\"" + option.message + "\".format(variables)")
+		var option_line = "\"" + option.message + "\".format(variables)"
+		if option.condition != "":
+			# Option is gated with a condition
+			option_line = "(" + option_line + " if " + option.condition + " else null)"
+
+		parsed_options.append(option_line)
 
 	return [
 		"emit_signal(\"options\", self, [{options}])".format({
@@ -118,7 +125,7 @@ static func build_options(opts: Array) -> Array:
 		"match yield():"
 	]
 
-static func options(opts: Array) -> Array:
+func options(opts: Array) -> Array:
 	var body := build_options(opts)
 
 	for option in opts:
@@ -128,7 +135,7 @@ static func options(opts: Array) -> Array:
 
 	return body
 
-static func shortcut_options(opts: Array) -> Array:
+func shortcut_options(opts: Array) -> Array:
 	var body := build_options(opts)
 
 	for option in opts:
@@ -143,7 +150,7 @@ static func shortcut_options(opts: Array) -> Array:
 
 	return body
 
-static func conditionals(conditionals: Array) -> Array:
+func conditionals(conditionals: Array) -> Array:
 	var body = []
 
 	for i in conditionals.size():
@@ -169,7 +176,7 @@ static func conditionals(conditionals: Array) -> Array:
 
 	return body
 
-static func yarn_to_gd(story: YarnStory) -> GDScript:
+func to_gd(story: YarnStory) -> GDScript:
 	var script = GDScript.new()
 
 	# Start the script out with boilerplate
@@ -187,7 +194,7 @@ static func yarn_to_gd(story: YarnStory) -> GDScript:
 
 	return script
 
-static func convert_fibres(fibres: Array) -> Array:
+func convert_fibres(fibres: Array) -> Array:
 	var body := []
 
 	var i = 0

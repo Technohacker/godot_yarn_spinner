@@ -1,9 +1,11 @@
-extends Node
+extends Reference
+
+var parse_utils = preload("./parse_utils.gd").new()
 
 """
 Reads a line and counts its level of indentation
 """
-static func read_line_with_indent(file: File) -> Dictionary:
+func read_line_with_indent(file: File) -> Dictionary:
 	var line = file.get_line()
 	var dedent = line.dedent()
 	return {
@@ -14,7 +16,7 @@ static func read_line_with_indent(file: File) -> Dictionary:
 """
 Parses the given Yarn file line-by-line
 """
-static func parse(yarn_file: File) -> YarnStory:
+func parse(yarn_file: File) -> YarnStory:
 	var script := YarnStory.new()
 
 	while !yarn_file.eof_reached():
@@ -30,7 +32,7 @@ static func parse(yarn_file: File) -> YarnStory:
 """
 Starts a new node
 """
-static func new_node(file: File) -> YarnNode:
+func new_node(file: File) -> YarnNode:
 	var node := YarnNode.new()
 
 	# Parse header until body starts
@@ -52,7 +54,7 @@ static func new_node(file: File) -> YarnNode:
 
 	return node
 
-static func parse_body(file: File, indent_level := 0) -> Array:
+func parse_body(file: File, indent_level := 0) -> Array:
 	# The body is an array of Yarn* resources
 	var body := []
 
@@ -89,12 +91,24 @@ static func parse_body(file: File, indent_level := 0) -> Array:
 		elif line.content.begins_with("->"):
 			# Shortcut option. Parse the sub-body with this function
 			# Syntax:
-			# -> <Message>
+			# -> <Message> << if <condition> >>
 			#	<body>
 			var node = YarnShortcutOption.new()
+			var condition = ""
+			if line.content.ends_with(">>"):
+				# This option is gated with a condition
+				var conditional = (line.content.split("<<", false, 1)[1].replace(">>", "") as String).split(" ", false, 1)
+				line.content = line.content.split("<<", false, 1)[0]
+				if conditional[0] == "if":
+					print(conditional)
+					# Just making sure it's an actual conditional
+					condition = parse_utils.tokens_to_expression(parse_command_args(conditional[1]))
+
+			node.condition = condition
 			node.message = line.content.replace("->", "").strip_edges()
 			# +1 to start it off
 			node.body = parse_body(file, indent_level + 1)
+			print(node)
 			body.append(node)
 
 		elif line.content.begins_with("<<"):
@@ -111,7 +125,7 @@ static func parse_body(file: File, indent_level := 0) -> Array:
 						# Syntax:
 						# << <type> <expression> >>
 						var node = YarnConditional.new()
-						node.expression = preload("./parse_utils.gd").tokens_to_expression(parse_command_args(command[1] if command.size() != 1 else ""))
+						node.expression = parse_utils.tokens_to_expression(parse_command_args(command[1] if command.size() != 1 else ""))
 						# +1 to start it off
 						node.body = parse_body(file, indent_level + 1)
 						body.append(node)
@@ -161,7 +175,7 @@ static func parse_body(file: File, indent_level := 0) -> Array:
 """
 Convert command arguments/expression strings into an array of tokens
 """
-static func parse_command_args(args: String) -> Array:
+func parse_command_args(args: String) -> Array:
 	# Regex to match subquotes:
 	# Split into individual tokens separated by spaces
 	# Includes string quotes if any

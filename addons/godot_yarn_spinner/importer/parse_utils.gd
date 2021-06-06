@@ -1,4 +1,4 @@
-extends Node
+extends Reference
 
 # Operator names that contain other operator names should be placed first to
 # avoid replacing parts of the larger operator name with the smaller one
@@ -25,7 +25,7 @@ const ARITH_OPERATORS = ["+", "-", "*", "/", "%", "(", ")"]
 """
 Converts a token array into a GDScript expression
 """
-static func tokens_to_expression(tokens: Array) -> String:
+func tokens_to_expression(tokens: Array) -> String:
 	var expression = ""
 
 	# According to Yarn docs, valid expressions include arithmetic, logical, relational operators, variables and literals
