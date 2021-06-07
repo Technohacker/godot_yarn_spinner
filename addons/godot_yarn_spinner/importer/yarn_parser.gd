@@ -76,7 +76,7 @@ func parse_body(file: File, indent_level := 0) -> Array:
 			var option = line.content.replace("[[", "").replace("]]", "").split("|", true, 1)
 			if option.size() == 2:
 				# Option
-				# Syntax: [[<target>|<message>]]
+				# Syntax: [[<message>|<target>]]
 				var node = YarnOption.new()
 				node.message = option[0].strip_edges()
 				node.target = option[1].strip_edges()
@@ -128,7 +128,21 @@ func parse_body(file: File, indent_level := 0) -> Array:
 						node.expression = parse_utils.tokens_to_expression(parse_command_args(command[1] if command.size() != 1 else ""))
 						# +1 to start it off
 						node.body = parse_body(file, indent_level + 1)
-						body.append(node)
+						
+						# The conditional could also only contain options, in which case, replace it with
+						# YarnOption blocks with conditions
+						var only_options = true
+						for subnode in node.body:
+							if !(subnode is YarnOption):
+								# We have a non-option node, put the conditional node back in
+								body.append(node)
+								only_options = false
+								break
+
+						if only_options:
+							for i in node.body.size():
+								(node.body[i] as YarnOption).condition = node.expression
+								body.append(node.body[i])
 
 					"endif":
 						# Ignore since we've handled the other conditionals

@@ -102,7 +102,8 @@ func dialogue(dialogue: YarnDialogue) -> Array:
 		"yield()"
 	]
 
-func jump(jump: YarnJump) -> Array:
+# jump can be a YarnJump or a YarnOption since they both have the target property
+func jump(jump) -> Array:
 	return [
 		"current_function = \"%s\"" % jump.target,
 		"return %s()" % jump.target
@@ -130,7 +131,7 @@ func options(opts: Array) -> Array:
 
 	for option in opts:
 		body.append("\t\"" + option.message + "\":")
-		for line in jump(option.target):
+		for line in jump(option):
 			body.append("\t\t" + line)
 
 	return body
